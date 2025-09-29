@@ -181,15 +181,36 @@ do_simulate :: proc(front_buffer: ^[NUM_ROW][NUM_COL]Cell) {
 
 // Handles user input for adding fluid.
 hanlde_input :: proc(Cell_Grid: ^[NUM_ROW][NUM_COL]Cell) {
-	cell: Cell
 	if rl.IsMouseButtonDown(.LEFT) {
 		mouse_pos := rl.GetMousePosition()
 		i := cast(int)(mouse_pos.x / CELL_SIZE)
 		j := cast(int)(mouse_pos.y / CELL_SIZE)
-		cell = Cell_Grid[i][j]
 		if i >= 0 && i < NUM_ROW && j >= 0 && j < NUM_COL {
-			cell.liquid = 5.0
-			cell.type = .water
+			Cell_Grid[i][j].liquid = 5.0
+			Cell_Grid[i][j].type = .water
+		}
+	}
+}
+
+draw_fluid :: proc(Cell_Grid: ^[NUM_ROW][NUM_COL]Cell) {
+	for i in 0 ..< NUM_ROW {
+		for j in 0 ..< NUM_COL {
+
+			cell: Cell
+			cell = Cell_Grid[i][j]
+			if Cell_Grid[i][j].type == .water {
+				height := cast(i32)(cell.liquid * cast(f32)CELL_SIZE)
+				empty_space: f32 = 1.0 - math.min(cell.liquid, 1.0)
+				temp: i32 = cast(i32)(empty_space * 10.0)
+
+				rl.DrawRectangle(
+					cast(i32)(i * CELL_SIZE),
+					cast(i32)(j * CELL_SIZE) + temp,
+					CELL_SIZE,
+					height,
+					rl.BLUE,
+				)
+			}
 		}
 	}
 }
@@ -198,17 +219,27 @@ hanlde_input :: proc(Cell_Grid: ^[NUM_ROW][NUM_COL]Cell) {
 main :: proc() {
 	Cell_gird: [NUM_ROW][NUM_COL]Cell
 
+	for i in 0 ..< NUM_ROW {
+		for j in 0 ..< NUM_COL {
+			Cell_gird[i][j] = Cell {
+				pos    = {cast(f32)j * CELL_SIZE, cast(f32)i * CELL_SIZE},
+				liquid = 0.0,
+				type   = .nothing,
+			}
+		}
+	}
 	rl.InitWindow(WIN_WIDTH, WIN_HEGIHT, "2d fluid simulation with celluar automata")
 	rl.SetTargetFPS(60) // Good practice to set FPS
 
 	for !rl.WindowShouldClose() {
 
-		// Draw
-		rl.BeginDrawing()
-		rl.ClearBackground(rl.GRAY)
-		draw_grid()
+
 		hanlde_input(&Cell_gird)
 		do_simulate(&Cell_gird)
+		rl.BeginDrawing()
+		rl.ClearBackground(rl.GRAY)
+		draw_fluid(&Cell_gird)
+		draw_grid()
 
 		rl.EndDrawing()
 	}
